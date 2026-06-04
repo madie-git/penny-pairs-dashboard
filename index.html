@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -13,7 +12,7 @@
     --text: #1a1815; --text2: #6b6560; --text3: #9e9890;
     --accent: #2d4a3e; --accent-light: #e8f0ec;
     --tag-bg: #f0ede8; --tag-text: #4a4540;
-    --danger: #c0392b; --positive: #1a6648;
+    --danger: #c0392b;
     --font: 'DM Sans', sans-serif; --mono: 'DM Mono', monospace;
     --radius: 10px; --radius-sm: 6px;
   }
@@ -113,8 +112,6 @@
   .loading-overlay p { font-size: 12px; color: var(--text3); font-family: var(--mono); }
   .error-bar { background: #fdf0ee; border: 1px solid #f5c6bc; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12px; color: var(--danger); margin-bottom: 14px; display: none; }
   .error-bar.visible { display: block; }
-
-  /* REC CARD */
   .rec-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
   .rec-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
   .rec-header-left { display: flex; flex-direction: column; gap: 2px; }
@@ -178,7 +175,7 @@
         <span class="type-pill" data-type="Necklaces" onclick="setType('Necklaces')">Necklaces</span>
         <span class="type-pill" data-type="Bracelets" onclick="setType('Bracelets')">Bracelets</span>
         <span class="type-pill" data-type="Rings" onclick="setType('Rings')">Rings</span>
-        <span class="type-pill" data-type="Charms & Pendants" onclick="setType('Charms & Pendants')">Charms & Pendants</span>
+        <span class="type-pill" data-type="Charms &amp; Pendants" onclick="setType('Charms &amp; Pendants')">Charms &amp; Pendants</span>
       </div>
     </div>
   </div>
@@ -218,11 +215,10 @@
     </div>
   </div>
 
-  <!-- RECOMMENDATIONS -->
   <div class="rec-card">
     <div class="rec-header">
       <div class="rec-header-left">
-        <span class="rec-title">✦ Growth recommendations</span>
+        <span class="rec-title">&#10022; Growth recommendations</span>
         <span class="rec-subtitle" id="recSubtitle">Apply filters above, then generate</span>
       </div>
       <button class="btn accent2" id="recBtn" onclick="getRecommendations()">
@@ -240,15 +236,24 @@
 </div>
 
 <script>
+  const WORKER_URL = 'https://penny-pairs-shopify.madie-f69.workers.dev';
+
   const TYPE_TAG_MAP = {
-    'Earrings': new Set(['[metafield - jewelry material base] brass','[metafield - style] dainty','[metafield - stones] cubic zirconia','[metafield - jewelry material base] medical grade titanium','[metafield - earring design - pp] flatback','[metafield - stones] no stones','[metafield - jewelry plating] thick 14k gold plating','[metafield - style] basic','[metafield - jewelry plating] pvd plating','[metafield - earring design - pp] huggie','[metafield - earring design - pp] hoop','[metafield - jewelry plating] thick 18k gold plating','[metafield - finish] smooth','[metafield - style] mixed','[metafield - style] stackable','[metafield - earring design - pp] round','[metafield - stones] lab grown diamonds','[metafield - earring design - pp] stud','[metafield - jewelry plating] sterling silver','[metafield - style] statement','[metafield - style] chunky','[metafield - supplier] mercery','[metafield - finish] pavé','[metafield - earring design - pp] double illusion','[metafield - earring design - pp] triple illusion','[metafield - jewelry material base] sterling silver (100% recycled)','[metafield - jewelry plating] rhodium plating','[metafield - style] colored','[metafield - style] molten','[metafield - stones] opal','[metafield - earring design - pp] dangle','[metafield - stones] others','[metafield - jewelry type] plated jewelry','[metafield - color pattern] gold','[metafield - gemstones] cubic zirconia','[metafield - earring design] flatback','[metafield - tier] 10% off','[metafield - supplier] illusion v3','[metafield - finish] textured','[metafield - launch collection] piercings 2025','[metafield - launch collection] flatbacks april 2026','[metafield - lifecycle] new launch','[metafield - launch collection] basic huggies & hoops 2026','[metafield - launch collection] solid gold flatbacks','[metafield - supplier] superstar','[metafield - launch collection] more silver bestsellers','[metafield - launch collection] titanium hoops','[metafield - style] hearts','[metafield - jewelry plating] solid white gold','[metafield - jewelry plating] pvd platinum','[metafield - jewelry plating] solid yellow gold','[metafield - jewelry material base] 14k solid yellow gold','[metafield - stones] cz','[metafield - stones] diamonds','[metafield - earring design - pp] bubble drop','[metafield - earring design - pp] jacket','[metafield - earring design - pp] oval','[metafield - launch collection] molten','[metafield - launch collection] plain x pave','[metafield - launch collection] thick huggies/hoops','[metafield - launch collection] statement earrings','[metafield - launch collection] illusion v6','[metafield - launch collection] liquid','[metafield - launch collection] zodiac collection','[metafield - style] floral','[metafield - supplier] evershiny jewelry','[metafield - jewelry plating] 18k gold vermeil']),
-    'Necklaces': new Set(['[metafield - finish] smooth','[metafield - jewelry material base] brass','[metafield - jewelry plating] thick 14k gold plating','[metafield - style] dainty','[metafield - necklace design - pp] pendant','[metafield - style] stackable','[metafield - necklace design - pp] layering','[metafield - stones] cubic zirconia','[metafield - style] basic','[metafield - style] statement','[metafield - stones] no stones','[metafield - jewelry plating] thick 18k gold plating','[metafield - stones] lab grown diamonds','[metafield - jewelry plating] sterling silver','[metafield - supplier] mercery','[metafield - finish] textured','[metafield - style] hearts','[metafield - jewelry plating] 18k gold vermeil','[metafield - jewelry material base] sterling silver (100% recycled)','[metafield - jewelry plating] rhodium plating','[metafield - style] colored','[metafield - style] floral','[metafield - launch collection] chain necklaces 2026','[metafield - finish] pavé','[metafield - necklace design - pp] locket','[metafield - supplier] evershiny jewelry','[metafield - launch collection] hearts','[metafield - launch collection] necklace builder 2025','[metafield - stones] others','[metafield - jewelry material base] 14k solid yellow gold','[metafield - jewelry plating] solid yellow gold','[metafield - lifecycle] in line']),
-    'Bracelets': new Set(['[metafield - finish] smooth','[metafield - style] stackable','[metafield - style] dainty','[metafield - style] basic','[metafield - jewelry material base] brass','[metafield - jewelry plating] thick 14k gold plating','[metafield - bracelet design - pp] layering','[metafield - lifecycle] in line','[metafield - stones] no stones','[metafield - stones] cubic zirconia','[metafield - launch collection] chain bracelets','[metafield - supplier] mercery','[metafield - jewelry material base] sterling silver (100% recycled)','[metafield - jewelry plating] rhodium plating','[metafield - jewelry plating] solid yellow gold','[metafield - style] colored','[metafield - bracelet design - pp] pendant','[metafield - launch collection] wicked','[metafield - bracelet design - pp] bangle','[metafield - bracelet design - pp] stretchy','[metafield - jewelry plating] sterling silver','[metafield - style] hearts','[metafield - style] floral','[metafield - style] statement','[metafield - launch collection] ange bangle','[metafield - launch collection] sally & flora bracelets','[metafield - stones] others','[metafield - jewelry plating] thick 18k gold plating','[metafield - launch collection] barbie','[metafield - style] molten']),
+    'Earrings': new Set(['[metafield - jewelry material base] brass','[metafield - style] dainty','[metafield - stones] cubic zirconia','[metafield - jewelry material base] medical grade titanium','[metafield - earring design - pp] flatback','[metafield - stones] no stones','[metafield - jewelry plating] thick 14k gold plating','[metafield - style] basic','[metafield - jewelry plating] pvd plating','[metafield - earring design - pp] huggie','[metafield - earring design - pp] hoop','[metafield - jewelry plating] thick 18k gold plating','[metafield - finish] smooth','[metafield - style] mixed','[metafield - style] stackable','[metafield - earring design - pp] round','[metafield - stones] lab grown diamonds','[metafield - earring design - pp] stud','[metafield - jewelry plating] sterling silver','[metafield - style] statement','[metafield - style] chunky','[metafield - supplier] mercery','[metafield - finish] pave','[metafield - earring design - pp] double illusion','[metafield - earring design - pp] triple illusion','[metafield - jewelry material base] sterling silver (100% recycled)','[metafield - jewelry plating] rhodium plating','[metafield - style] colored','[metafield - style] molten','[metafield - stones] opal','[metafield - earring design - pp] dangle','[metafield - stones] others','[metafield - jewelry type] plated jewelry','[metafield - color pattern] gold','[metafield - gemstones] cubic zirconia','[metafield - earring design] flatback','[metafield - tier] 10% off','[metafield - supplier] illusion v3','[metafield - finish] textured','[metafield - launch collection] piercings 2025','[metafield - launch collection] flatbacks april 2026','[metafield - lifecycle] new launch','[metafield - launch collection] basic huggies and hoops 2026','[metafield - launch collection] solid gold flatbacks','[metafield - supplier] superstar','[metafield - launch collection] more silver bestsellers','[metafield - launch collection] titanium hoops','[metafield - style] hearts','[metafield - jewelry plating] solid white gold','[metafield - jewelry plating] pvd platinum','[metafield - jewelry plating] solid yellow gold','[metafield - jewelry material base] 14k solid yellow gold','[metafield - stones] cz','[metafield - stones] diamonds','[metafield - earring design - pp] bubble drop','[metafield - earring design - pp] jacket','[metafield - earring design - pp] oval','[metafield - launch collection] molten','[metafield - launch collection] plain x pave','[metafield - launch collection] thick huggies/hoops','[metafield - launch collection] statement earrings','[metafield - launch collection] illusion v6','[metafield - launch collection] liquid','[metafield - launch collection] zodiac collection','[metafield - style] floral','[metafield - supplier] evershiny jewelry','[metafield - jewelry plating] 18k gold vermeil']),
+    'Necklaces': new Set(['[metafield - finish] smooth','[metafield - jewelry material base] brass','[metafield - jewelry plating] thick 14k gold plating','[metafield - style] dainty','[metafield - necklace design - pp] pendant','[metafield - style] stackable','[metafield - necklace design - pp] layering','[metafield - stones] cubic zirconia','[metafield - style] basic','[metafield - style] statement','[metafield - stones] no stones','[metafield - jewelry plating] thick 18k gold plating','[metafield - stones] lab grown diamonds','[metafield - jewelry plating] sterling silver','[metafield - supplier] mercery','[metafield - finish] textured','[metafield - style] hearts','[metafield - jewelry plating] 18k gold vermeil','[metafield - jewelry material base] sterling silver (100% recycled)','[metafield - jewelry plating] rhodium plating','[metafield - style] colored','[metafield - style] floral','[metafield - launch collection] chain necklaces 2026','[metafield - finish] pave','[metafield - necklace design - pp] locket','[metafield - supplier] evershiny jewelry','[metafield - launch collection] hearts','[metafield - launch collection] necklace builder 2025','[metafield - stones] others','[metafield - jewelry material base] 14k solid yellow gold','[metafield - jewelry plating] solid yellow gold','[metafield - lifecycle] in line']),
+    'Bracelets': new Set(['[metafield - finish] smooth','[metafield - style] stackable','[metafield - style] dainty','[metafield - style] basic','[metafield - jewelry material base] brass','[metafield - jewelry plating] thick 14k gold plating','[metafield - bracelet design - pp] layering','[metafield - lifecycle] in line','[metafield - stones] no stones','[metafield - stones] cubic zirconia','[metafield - launch collection] chain bracelets','[metafield - supplier] mercery','[metafield - jewelry material base] sterling silver (100% recycled)','[metafield - jewelry plating] rhodium plating','[metafield - jewelry plating] solid yellow gold','[metafield - style] colored','[metafield - bracelet design - pp] pendant','[metafield - launch collection] wicked','[metafield - bracelet design - pp] bangle','[metafield - bracelet design - pp] stretchy','[metafield - jewelry plating] sterling silver','[metafield - style] hearts','[metafield - style] floral','[metafield - style] statement','[metafield - launch collection] ange bangle','[metafield - launch collection] sally and flora bracelets','[metafield - stones] others','[metafield - jewelry plating] thick 18k gold plating','[metafield - launch collection] barbie','[metafield - style] molten']),
     'Rings': new Set([]),
     'Charms & Pendants': new Set([])
   };
+
   const TAG_TO_TYPES = {};
-  for (const [ptype, tags] of Object.entries(TYPE_TAG_MAP)) { for (const tag of tags) { if (!TAG_TO_TYPES[tag]) TAG_TO_TYPES[tag] = []; TAG_TO_TYPES[tag].push(ptype); } }
+  for (const [ptype, tags] of Object.entries(TYPE_TAG_MAP)) {
+    for (const tag of tags) {
+      if (!TAG_TO_TYPES[tag]) TAG_TO_TYPES[tag] = [];
+      TAG_TO_TYPES[tag].push(ptype);
+    }
+  }
+
   const TYPE_COLORS = { 'Earrings':'#534AB7','Necklaces':'#1D9E75','Bracelets':'#D85A30','Rings':'#D4537E','Charms & Pendants':'#BA7517' };
   const KEY_PALETTE = ['#534AB7','#1D9E75','#D85A30','#D4537E','#BA7517','#0891B2','#7C3AED','#059669','#DC2626','#D97706','#6366F1','#10B981','#F59E0B','#EF4444','#8B5CF6'];
   const ALL_TYPES = ['Earrings','Necklaces','Bracelets','Rings','Charms & Pendants'];
@@ -258,22 +263,53 @@
   let currentFilteredRows = [];
 
   function initDates() {
-    const today = new Date(), prior = new Date(); prior.setDate(today.getDate()-30);
+    const today = new Date(), prior = new Date();
+    prior.setDate(today.getDate() - 30);
     document.getElementById('dateTo').value = today.toISOString().split('T')[0];
     document.getElementById('dateFrom').value = prior.toISOString().split('T')[0];
   }
-  function fmt$(v) { return '₱'+Math.round(parseFloat(v)||0).toLocaleString(); }
-  function fmtK(v) { const n=Math.round(parseFloat(v)||0); return n>=1000?'₱'+(n/1000).toFixed(0)+'k':'₱'+n; }
+
+  function fmt$(v) { return '\u20B1' + Math.round(parseFloat(v)||0).toLocaleString(); }
+  function fmtK(v) { const n = Math.round(parseFloat(v)||0); return n >= 1000 ? '\u20B1'+(n/1000).toFixed(0)+'k' : '\u20B1'+n; }
   function fmtN(v) { return parseInt(v||0).toLocaleString(); }
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function extractKey(tag) { const m=tag.match(/\[Metafield - ([^\]]+?)\]\s/i); if(m) return m[1].trim(); const m2=tag.match(/\[Metafield - ([^\]]+)\]$/i); return m2?m2[1].trim():null; }
-  function extractValue(tag) { const m=tag.match(/\[Metafield - [^\]]+\]\s+(.+)/i); return m?m[1].trim():tag; }
-  function tagMatchesType(tag,type) { if(type==='all') return true; return (TAG_TO_TYPES[tag.toLowerCase()]||[]).includes(type); }
+
+  function extractKey(tag) {
+    const m = tag.match(/\[Metafield - ([^\]]+?)\]\s/i);
+    if (m) return m[1].trim();
+    const m2 = tag.match(/\[Metafield - ([^\]]+)\]$/i);
+    return m2 ? m2[1].trim() : null;
+  }
+
+  function extractValue(tag) {
+    const m = tag.match(/\[Metafield - [^\]]+\]\s+(.+)/i);
+    return m ? m[1].trim() : tag;
+  }
+
+  function tagMatchesType(tag, type) {
+    if (type === 'all') return true;
+    return (TAG_TO_TYPES[tag.toLowerCase()] || []).includes(type);
+  }
 
   function setType(type) {
     activeType = type;
-    document.querySelectorAll('.type-pill').forEach(p => p.classList.toggle('active', p.dataset.type===type));
-    buildDropdown(allRows); applyFilters();
+    document.querySelectorAll('.type-pill').forEach(p => p.classList.toggle('active', p.dataset.type === type));
+    buildDropdown(allRows);
+    applyFilters();
+  }
+
+  async function shopifyQuery(qlQuery) {
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: qlQuery })
+    });
+    if (!res.ok) throw new Error('Worker error ' + res.status);
+    const json = await res.json();
+    if (json.errors) throw new Error(JSON.stringify(json.errors));
+    const rows = json.data?.rows || [];
+    const cols = (json.data?.schema || []).map(c => c.name);
+    return { rows, cols };
   }
 
   async function fetchData() {
@@ -283,68 +319,98 @@
     document.getElementById('tableBody').innerHTML = '<div class="loading-overlay"><div class="spinner"></div><p>Fetching from Shopify...</p></div>';
     document.getElementById('errorBar').classList.remove('visible');
     expandedTag = null; breakdownCache = {}; setKpiLoading();
-    const from = document.getElementById('dateFrom').value, to = document.getElementById('dateTo').value;
-    currentDateRange = { since: from?`${from}T00:00:00`:'startOfDay(-30d)', until: to?`${to}T23:59:59`:'today' };
+
+    const from = document.getElementById('dateFrom').value;
+    const to = document.getElementById('dateTo').value;
+    currentDateRange = {
+      since: from ? from + 'T00:00:00' : 'startOfDay(-30d)',
+      until: to ? to + 'T23:59:59' : 'today'
+    };
+
     try {
-      const res = await fetch('https://penny-pairs-shopify.madie-f69.workers.dev', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:8000, system:`You are a Shopify analytics assistant with access to the Shopify MCP tool for penny-pairs.myshopify.com. Run the given ShopifyQL query and return ONLY a raw JSON array. Each element: {"tag": string, "items": number, "sales": number}. Only include rows where tag contains "[Metafield". No explanation, no markdown fences, just the JSON array.`, messages:[{role:'user',content:`Run this ShopifyQL query:\n\nFROM sales SHOW net_items_sold, total_sales GROUP BY product_tag WITH TOTALS SINCE ${currentDateRange.since} UNTIL ${currentDateRange.until} ORDER BY total_sales DESC LIMIT 1000`}], mcp_servers:[{type:'url',url:'https://setup.shopify.com/mcp',name:'shopify'}] }) });
-      const data = await res.json();
-      const raw = data.content?.find(b=>b.type==='text')?.text||'';
-      const match = raw.match(/\[[\s\S]*\]/); if(!match) throw new Error('No data returned');
-      const parsed = JSON.parse(match[0]);
-      allRows = parsed.filter(r=>r.tag?.includes('[Metafield')).sort((a,b)=>b.sales-a.sales);
-      if(!allRows.length) throw new Error('No metafield tags found');
-      buildDropdown(allRows); applyFilters();
-      document.getElementById('timestamp').textContent = `Penny Pairs · refreshed ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+      const { rows, cols } = await shopifyQuery(
+        'FROM sales SHOW net_items_sold, total_sales GROUP BY product_tag WITH TOTALS SINCE ' + currentDateRange.since + ' UNTIL ' + currentDateRange.until + ' ORDER BY total_sales DESC LIMIT 1000'
+      );
+
+      const tagIdx = cols.indexOf('product_tag');
+      const itemsIdx = cols.indexOf('net_items_sold');
+      const salesIdx = cols.indexOf('total_sales');
+
+      allRows = rows
+        .filter(r => (r[tagIdx] || '').includes('[Metafield'))
+        .map(r => ({ tag: r[tagIdx], items: parseFloat(r[itemsIdx]) || 0, sales: parseFloat(r[salesIdx]) || 0 }))
+        .sort((a, b) => b.sales - a.sales);
+
+      if (!allRows.length) throw new Error('No metafield tags found in results');
+
+      buildDropdown(allRows);
+      applyFilters();
+      document.getElementById('timestamp').textContent = 'Penny Pairs \u00B7 refreshed ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
     } catch(e) {
       console.error(e);
-      document.getElementById('errorBar').textContent = 'Error: '+e.message;
+      document.getElementById('errorBar').textContent = 'Error: ' + e.message;
       document.getElementById('errorBar').classList.add('visible');
       document.getElementById('tableBody').innerHTML = '<div class="empty-state">No data loaded. Try refreshing.</div>';
       setKpiEmpty();
     }
+
     btn.disabled = false;
     btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg> Refresh';
   }
 
-  function setKpiLoading() { ['kpi-sales','kpi-items','kpi-tags'].forEach(id=>{const el=document.getElementById(id);el.textContent='—';el.className='kpi-value loading';}); document.getElementById('kpi-sales-sub').textContent=''; document.getElementById('kpi-items-sub').textContent=''; document.getElementById('kpi-tags-sub').textContent=''; document.getElementById('kpi-top-tag').textContent='—'; document.getElementById('kpi-top-val').textContent=''; }
+  function setKpiLoading() {
+    ['kpi-sales','kpi-items','kpi-tags'].forEach(id => {
+      const el = document.getElementById(id);
+      el.textContent = '\u2014'; el.className = 'kpi-value loading';
+    });
+    ['kpi-sales-sub','kpi-items-sub','kpi-tags-sub'].forEach(id => document.getElementById(id).textContent = '');
+    document.getElementById('kpi-top-tag').textContent = '\u2014';
+    document.getElementById('kpi-top-val').textContent = '';
+  }
   function setKpiEmpty() { setKpiLoading(); }
 
   function updateKpis(rows) {
-    if(!rows.length){setKpiEmpty();return;}
-    const totalSales=rows.reduce((s,r)=>s+(parseFloat(r.sales)||0),0);
-    const totalItems=rows.reduce((s,r)=>s+(parseInt(r.items)||0),0);
-    const tagCount=rows.length, top=rows[0];
-    const avgSales=tagCount>0?totalSales/tagCount:0, avgItems=tagCount>0?totalItems/tagCount:0;
-    const salesEl=document.getElementById('kpi-sales'); salesEl.textContent=fmt$(totalSales); salesEl.className='kpi-value';
-    document.getElementById('kpi-sales-sub').innerHTML=`avg <strong>${fmt$(avgSales)}</strong> per tag`;
-    const itemsEl=document.getElementById('kpi-items'); itemsEl.textContent=fmtN(totalItems); itemsEl.className='kpi-value';
-    document.getElementById('kpi-items-sub').innerHTML=`avg <strong>${fmtN(avgItems.toFixed(0))}</strong> items per tag`;
-    const tagsEl=document.getElementById('kpi-tags'); tagsEl.textContent=tagCount; tagsEl.className='kpi-value';
-    const keyCount=new Set(rows.map(r=>extractKey(r.tag)).filter(Boolean)).size;
-    document.getElementById('kpi-tags-sub').innerHTML=`across <strong>${keyCount}</strong> metafield key${keyCount!==1?'s':''}`;
-    const topVal=extractValue(top.tag);
-    document.getElementById('kpi-top-tag').textContent=topVal.length>22?topVal.slice(0,20)+'…':topVal;
-    document.getElementById('kpi-top-val').textContent=`${fmt$(top.sales)} · ${fmtN(top.items)} items`;
+    if (!rows.length) { setKpiEmpty(); return; }
+    const totalSales = rows.reduce((s,r) => s + (parseFloat(r.sales)||0), 0);
+    const totalItems = rows.reduce((s,r) => s + (parseInt(r.items)||0), 0);
+    const tagCount = rows.length, top = rows[0];
+    const salesEl = document.getElementById('kpi-sales');
+    salesEl.textContent = fmt$(totalSales); salesEl.className = 'kpi-value';
+    document.getElementById('kpi-sales-sub').innerHTML = 'avg <strong>' + fmt$(tagCount > 0 ? totalSales/tagCount : 0) + '</strong> per tag';
+    const itemsEl = document.getElementById('kpi-items');
+    itemsEl.textContent = fmtN(totalItems); itemsEl.className = 'kpi-value';
+    document.getElementById('kpi-items-sub').innerHTML = 'avg <strong>' + fmtN(Math.round(tagCount > 0 ? totalItems/tagCount : 0)) + '</strong> items per tag';
+    const tagsEl = document.getElementById('kpi-tags');
+    tagsEl.textContent = tagCount; tagsEl.className = 'kpi-value';
+    const keyCount = new Set(rows.map(r => extractKey(r.tag)).filter(Boolean)).size;
+    document.getElementById('kpi-tags-sub').innerHTML = 'across <strong>' + keyCount + '</strong> metafield key' + (keyCount !== 1 ? 's' : '');
+    const topVal = extractValue(top.tag);
+    document.getElementById('kpi-top-tag').textContent = topVal.length > 22 ? topVal.slice(0,20) + '\u2026' : topVal;
+    document.getElementById('kpi-top-val').textContent = fmt$(top.sales) + ' \u00B7 ' + fmtN(top.items) + ' items';
   }
 
   function buildDropdown(rows) {
-    const visible=activeType==='all'?rows:rows.filter(r=>tagMatchesType(r.tag,activeType));
-    const keys=[...new Set(visible.map(r=>extractKey(r.tag)).filter(Boolean))].sort();
-    const sel=document.getElementById('metafieldFilter'), cur=sel.value;
-    sel.innerHTML='<option value="all">All metafields</option>';
-    keys.forEach(k=>{const o=document.createElement('option');o.value=k;o.textContent=k;sel.appendChild(o);});
-    sel.value=keys.includes(cur)?cur:'all';
+    const visible = activeType === 'all' ? rows : rows.filter(r => tagMatchesType(r.tag, activeType));
+    const keys = [...new Set(visible.map(r => extractKey(r.tag)).filter(Boolean))].sort();
+    const sel = document.getElementById('metafieldFilter'), cur = sel.value;
+    sel.innerHTML = '<option value="all">All metafields</option>';
+    keys.forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; sel.appendChild(o); });
+    sel.value = keys.includes(cur) ? cur : 'all';
   }
 
   function applyFilters() {
-    const keyFilter=document.getElementById('metafieldFilter').value;
-    let filtered=allRows;
-    if(activeType!=='all') filtered=filtered.filter(r=>tagMatchesType(r.tag,activeType));
-    if(keyFilter!=='all') filtered=filtered.filter(r=>extractKey(r.tag)===keyFilter);
+    const keyFilter = document.getElementById('metafieldFilter').value;
+    let filtered = allRows;
+    if (activeType !== 'all') filtered = filtered.filter(r => tagMatchesType(r.tag, activeType));
+    if (keyFilter !== 'all') filtered = filtered.filter(r => extractKey(r.tag) === keyFilter);
     currentFilteredRows = filtered;
-    const badge=document.getElementById('activeBadge');
-    const parts=[]; if(activeType!=='all') parts.push(activeType); if(keyFilter!=='all') parts.push(keyFilter);
-    badge.textContent=parts.join(' · '); badge.style.display=parts.length?'inline-block':'none';
+    const badge = document.getElementById('activeBadge');
+    const parts = [];
+    if (activeType !== 'all') parts.push(activeType);
+    if (keyFilter !== 'all') parts.push(keyFilter);
+    badge.textContent = parts.join(' \u00B7 ');
+    badge.style.display = parts.length ? 'inline-block' : 'none';
     updateKpis(filtered); renderCharts(filtered); renderTable(filtered); updateRecContext();
   }
 
@@ -353,147 +419,191 @@
     const keyFilter = document.getElementById('metafieldFilter').value;
     const from = document.getElementById('dateFrom').value, to = document.getElementById('dateTo').value;
     const parts = [];
-    if(activeType !== 'all') parts.push(activeType);
-    if(keyFilter !== 'all') parts.push(keyFilter);
+    if (activeType !== 'all') parts.push(activeType);
+    if (keyFilter !== 'all') parts.push(keyFilter);
     const label = parts.length ? parts.join(' + ') : 'All tags';
-    const totalSales = rows.reduce((s,r)=>s+(parseFloat(r.sales)||0),0);
-    document.getElementById('recContextPreview').textContent = `${label} · ${rows.length} tags · ${fmt$(totalSales)} · ${from} → ${to}`;
-    document.getElementById('recSubtitle').textContent = rows.length ? `Based on current filters (${rows.length} tags)` : 'Apply filters above, then generate';
+    const totalSales = rows.reduce((s,r) => s + (parseFloat(r.sales)||0), 0);
+    const el = document.getElementById('recContextPreview');
+    if (el) el.textContent = label + ' \u00B7 ' + rows.length + ' tags \u00B7 ' + fmt$(totalSales) + ' \u00B7 ' + from + ' \u2192 ' + to;
+    document.getElementById('recSubtitle').textContent = rows.length ? 'Based on current filters (' + rows.length + ' tags)' : 'Apply filters above, then generate';
   }
 
   function renderCharts(rows) {
-    const top10=rows.slice(0,10);
-    const labels=top10.map(r=>{const v=extractValue(r.tag);return v.length>22?v.slice(0,20)+'…':v;});
-    const values=top10.map(r=>parseFloat(r.sales)||0);
-    const allKeys=[...new Set(rows.map(r=>extractKey(r.tag)).filter(Boolean))];
-    const keyColorMap={}; allKeys.forEach((k,i)=>{keyColorMap[k]=KEY_PALETTE[i%KEY_PALETTE.length];});
-    const bgColors=top10.map(r=>keyColorMap[extractKey(r.tag)]||'#534AB7');
-    if(barChartInstance){barChartInstance.destroy();barChartInstance=null;}
-    barChartInstance=new Chart(document.getElementById('barChart').getContext('2d'),{type:'bar',data:{labels,datasets:[{data:values,backgroundColor:bgColors,borderRadius:4,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt$(c.raw),title:c=>extractValue(top10[c[0].dataIndex].tag)}}},scales:{x:{grid:{color:'#e2ddd6'},ticks:{font:{family:'DM Mono',size:10},color:'#9e9890',callback:v=>fmtK(v)},border:{display:false}},y:{grid:{display:false},ticks:{font:{family:'DM Sans',size:11},color:'#6b6560'},border:{display:false}}}}});
-    const keyTotals={}; rows.forEach(r=>{const k=extractKey(r.tag)||'Other';keyTotals[k]=(keyTotals[k]||0)+(parseFloat(r.sales)||0);});
-    const sorted=Object.entries(keyTotals).sort((a,b)=>b[1]-a[1]);
-    const top6=sorted.slice(0,6); const rest=sorted.slice(6).reduce((s,[,v])=>s+v,0); if(rest>0) top6.push(['Other keys',rest]);
-    const dLabels=top6.map(([k])=>k),dVals=top6.map(([,v])=>v),total=dVals.reduce((s,v)=>s+v,0);
-    const dColors=dLabels.map((_,i)=>KEY_PALETTE[i%KEY_PALETTE.length]);
-    if(donutChartInstance){donutChartInstance.destroy();donutChartInstance=null;}
-    donutChartInstance=new Chart(document.getElementById('donutChart').getContext('2d'),{type:'doughnut',data:{labels:dLabels,datasets:[{data:dVals,backgroundColor:dColors,borderWidth:2,borderColor:'#fff',hoverOffset:4}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt$(c.raw)} (${total>0?((c.raw/total)*100).toFixed(1):0}%)`}}}}});
-    document.getElementById('donutLegend').innerHTML=top6.map(([k,v],i)=>{const pct=total>0?((v/total)*100).toFixed(1):0;const sk=k.length>24?k.slice(0,22)+'…':k;return`<div class="legend-item"><div class="legend-left"><div class="legend-dot" style="background:${dColors[i]}"></div><span>${esc(sk)}</span></div><span class="legend-val">${pct}%</span></div>`;}).join('');
+    const top10 = rows.slice(0, 10);
+    const labels = top10.map(r => { const v = extractValue(r.tag); return v.length > 22 ? v.slice(0,20) + '\u2026' : v; });
+    const values = top10.map(r => parseFloat(r.sales) || 0);
+    const allKeys = [...new Set(rows.map(r => extractKey(r.tag)).filter(Boolean))];
+    const keyColorMap = {};
+    allKeys.forEach((k,i) => { keyColorMap[k] = KEY_PALETTE[i % KEY_PALETTE.length]; });
+    const bgColors = top10.map(r => keyColorMap[extractKey(r.tag)] || '#534AB7');
+
+    if (barChartInstance) { barChartInstance.destroy(); barChartInstance = null; }
+    barChartInstance = new Chart(document.getElementById('barChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets: [{ data: values, backgroundColor: bgColors, borderRadius: 4, borderSkipped: false }] },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmt$(c.raw), title: c => extractValue(top10[c[0].dataIndex].tag) } } },
+        scales: {
+          x: { grid: { color: '#e2ddd6' }, ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9e9890', callback: v => fmtK(v) }, border: { display: false } },
+          y: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#6b6560' }, border: { display: false } }
+        }
+      }
+    });
+
+    const keyTotals = {};
+    rows.forEach(r => { const k = extractKey(r.tag) || 'Other'; keyTotals[k] = (keyTotals[k] || 0) + (parseFloat(r.sales) || 0); });
+    const sorted = Object.entries(keyTotals).sort((a,b) => b[1] - a[1]);
+    const top6 = sorted.slice(0, 6);
+    const rest = sorted.slice(6).reduce((s,[,v]) => s + v, 0);
+    if (rest > 0) top6.push(['Other keys', rest]);
+    const dLabels = top6.map(([k]) => k), dVals = top6.map(([,v]) => v);
+    const total = dVals.reduce((s,v) => s + v, 0);
+    const dColors = dLabels.map((_,i) => KEY_PALETTE[i % KEY_PALETTE.length]);
+
+    if (donutChartInstance) { donutChartInstance.destroy(); donutChartInstance = null; }
+    donutChartInstance = new Chart(document.getElementById('donutChart').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: dLabels, datasets: [{ data: dVals, backgroundColor: dColors, borderWidth: 2, borderColor: '#fff', hoverOffset: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' ' + fmt$(c.raw) + ' (' + (total > 0 ? ((c.raw/total)*100).toFixed(1) : 0) + '%)' } } } }
+    });
+    document.getElementById('donutLegend').innerHTML = top6.map(([k,v], i) => {
+      const pct = total > 0 ? ((v/total)*100).toFixed(1) : 0;
+      const sk = k.length > 24 ? k.slice(0,22) + '\u2026' : k;
+      return '<div class="legend-item"><div class="legend-left"><div class="legend-dot" style="background:' + dColors[i] + '"></div><span>' + esc(sk) + '</span></div><span class="legend-val">' + pct + '%</span></div>';
+    }).join('');
   }
 
   function renderTable(rows) {
-    document.getElementById('rowCount').textContent=rows.length+' rows';
-    if(!rows.length){document.getElementById('tableBody').innerHTML='<div class="empty-state">No tags match the current filters.</div>';return;}
-    let totalItems=0,totalSales=0; rows.forEach(r=>{totalItems+=Number(r.items);totalSales+=Number(r.sales);});
-    let html=`<table><colgroup><col class="col-expand"><col class="col-tag"><col class="col-key"><col class="col-items"><col class="col-sales"></colgroup><thead><tr><th class="center"></th><th>Design tag</th><th>Metafield key</th><th class="num">Net items sold</th><th class="num">Total sales</th></tr></thead><tbody>`;
-    rows.forEach((r,i)=>{
-      const key=extractKey(r.tag)||'—',val=extractValue(r.tag),rowId=`row-${i}`,isOpen=expandedTag===r.tag;
-      html+=`<tr class="data-row${isOpen?' expanded':''}" onclick="toggleRow('${rowId}','${encodeURIComponent(r.tag)}')"><td class="center"><span class="expand-icon">▾</span></td><td><div class="tag-name">${esc(val)}</div></td><td><span class="key-pill">${esc(key)}</span></td><td class="num">${fmtN(r.items)}</td><td class="sales-val">${fmt$(r.sales)}</td></tr><tr class="breakdown-row${isOpen?' open':''}" id="${rowId}-breakdown"><td colspan="5"><div class="breakdown-inner" id="${rowId}-inner">${isOpen?renderBreakdownContent(r.tag):'<div class="breakdown-loading"><span class="mini-spinner"></span> Loading...</div>'}</div></td></tr>`;
+    document.getElementById('rowCount').textContent = rows.length + ' rows';
+    if (!rows.length) { document.getElementById('tableBody').innerHTML = '<div class="empty-state">No tags match the current filters.</div>'; return; }
+    let totalItems = 0, totalSales = 0;
+    rows.forEach(r => { totalItems += Number(r.items); totalSales += Number(r.sales); });
+    let html = '<table><colgroup><col class="col-expand"><col class="col-tag"><col class="col-key"><col class="col-items"><col class="col-sales"></colgroup><thead><tr><th class="center"></th><th>Design tag</th><th>Metafield key</th><th class="num">Net items sold</th><th class="num">Total sales</th></tr></thead><tbody>';
+    rows.forEach((r, i) => {
+      const key = extractKey(r.tag) || '\u2014';
+      const val = extractValue(r.tag);
+      const rowId = 'row-' + i;
+      const isOpen = expandedTag === r.tag;
+      html += '<tr class="data-row' + (isOpen ? ' expanded' : '') + '" onclick="toggleRow(\'' + rowId + '\',\'' + encodeURIComponent(r.tag) + '\')"><td class="center"><span class="expand-icon">\u25BE</span></td><td><div class="tag-name">' + esc(val) + '</div></td><td><span class="key-pill">' + esc(key) + '</span></td><td class="num">' + fmtN(r.items) + '</td><td class="sales-val">' + fmt$(r.sales) + '</td></tr><tr class="breakdown-row' + (isOpen ? ' open' : '') + '" id="' + rowId + '-breakdown"><td colspan="5"><div class="breakdown-inner" id="' + rowId + '-inner">' + (isOpen ? renderBreakdownContent(r.tag) : '<div class="breakdown-loading"><span class="mini-spinner"></span> Loading...</div>') + '</div></td></tr>';
     });
-    html+=`</tbody><tfoot><tr class="totals-row"><td></td><td><strong>Total</strong></td><td></td><td class="num">${fmtN(totalItems)}</td><td class="sales-val">${fmt$(totalSales)}</td></tr></tfoot></table>`;
-    document.getElementById('tableBody').innerHTML=html;
+    html += '</tbody><tfoot><tr class="totals-row"><td></td><td><strong>Total</strong></td><td></td><td class="num">' + fmtN(totalItems) + '</td><td class="sales-val">' + fmt$(totalSales) + '</td></tr></tfoot></table>';
+    document.getElementById('tableBody').innerHTML = html;
   }
 
   function renderBreakdownContent(tag) {
-    const cached=breakdownCache[tag]; if(!cached) return '<div class="breakdown-loading"><span class="mini-spinner"></span> Loading breakdown...</div>';
-    const typeEntries=ALL_TYPES.map(t=>({type:t,...(cached[t]||{items:0,sales:0})})).filter(e=>e.sales>0);
-    if(!typeEntries.length) return '<div style="font-size:12px;color:var(--text3)">No product type breakdown available.</div>';
-    const maxSales=Math.max(...typeEntries.map(e=>e.sales)),totalSales=typeEntries.reduce((s,e)=>s+e.sales,0);
-    return`<div class="breakdown-title">Sales distribution by product type — "${esc(extractValue(tag))}"</div><div class="breakdown-grid">${typeEntries.map(e=>{const pct=totalSales>0?((e.sales/totalSales)*100).toFixed(1):0,barW=maxSales>0?((e.sales/maxSales)*100).toFixed(1):0,color=TYPE_COLORS[e.type]||'#9e9890';return`<div class="breakdown-card"><div class="bc-type"><div class="bc-dot" style="background:${color}"></div>${esc(e.type)}</div><div class="bc-sales">${fmt$(e.sales)}</div><div class="bc-items">${fmtN(e.items)} items · ${pct}%</div><div class="bc-bar-track"><div class="bc-bar-fill" style="width:${barW}%;background:${color}"></div></div></div>`;}).join('')}</div>`;
+    const cached = breakdownCache[tag];
+    if (!cached) return '<div class="breakdown-loading"><span class="mini-spinner"></span> Loading breakdown...</div>';
+    const typeEntries = ALL_TYPES.map(t => ({ type: t, ...(cached[t] || { items: 0, sales: 0 }) })).filter(e => e.sales > 0);
+    if (!typeEntries.length) return '<div style="font-size:12px;color:var(--text3)">No product type breakdown available.</div>';
+    const maxSales = Math.max(...typeEntries.map(e => e.sales));
+    const totalSales = typeEntries.reduce((s,e) => s + e.sales, 0);
+    return '<div class="breakdown-title">Sales distribution by product type \u2014 "' + esc(extractValue(tag)) + '"</div><div class="breakdown-grid">' + typeEntries.map(e => {
+      const pct = totalSales > 0 ? ((e.sales/totalSales)*100).toFixed(1) : 0;
+      const barW = maxSales > 0 ? ((e.sales/maxSales)*100).toFixed(1) : 0;
+      const color = TYPE_COLORS[e.type] || '#9e9890';
+      return '<div class="breakdown-card"><div class="bc-type"><div class="bc-dot" style="background:' + color + '"></div>' + esc(e.type) + '</div><div class="bc-sales">' + fmt$(e.sales) + '</div><div class="bc-items">' + fmtN(e.items) + ' items \u00B7 ' + pct + '%</div><div class="bc-bar-track"><div class="bc-bar-fill" style="width:' + barW + '%;background:' + color + '"></div></div></div>';
+    }).join('') + '</div>';
   }
 
-  async function toggleRow(rowId,encodedTag) {
-    const tag=decodeURIComponent(encodedTag),breakdownRow=document.getElementById(`${rowId}-breakdown`),dataRow=breakdownRow?.previousElementSibling,inner=document.getElementById(`${rowId}-inner`);
-    if(expandedTag===tag){expandedTag=null;breakdownRow.classList.remove('open');dataRow?.classList.remove('expanded');return;}
-    expandedTag=tag; document.querySelectorAll('.breakdown-row.open').forEach(r=>r.classList.remove('open')); document.querySelectorAll('.data-row.expanded').forEach(r=>r.classList.remove('expanded'));
-    breakdownRow.classList.add('open'); dataRow?.classList.add('expanded'); inner.innerHTML='<div class="breakdown-loading"><span class="mini-spinner"></span> Loading breakdown...</div>';
-    if(!breakdownCache[tag]) await fetchBreakdown(tag);
-    inner.innerHTML=renderBreakdownContent(tag);
+  async function toggleRow(rowId, encodedTag) {
+    const tag = decodeURIComponent(encodedTag);
+    const breakdownRow = document.getElementById(rowId + '-breakdown');
+    const dataRow = breakdownRow ? breakdownRow.previousElementSibling : null;
+    const inner = document.getElementById(rowId + '-inner');
+    if (expandedTag === tag) {
+      expandedTag = null;
+      breakdownRow.classList.remove('open');
+      if (dataRow) dataRow.classList.remove('expanded');
+      return;
+    }
+    expandedTag = tag;
+    document.querySelectorAll('.breakdown-row.open').forEach(r => r.classList.remove('open'));
+    document.querySelectorAll('.data-row.expanded').forEach(r => r.classList.remove('expanded'));
+    breakdownRow.classList.add('open');
+    if (dataRow) dataRow.classList.add('expanded');
+    inner.innerHTML = '<div class="breakdown-loading"><span class="mini-spinner"></span> Loading breakdown...</div>';
+    if (!breakdownCache[tag]) await fetchBreakdown(tag);
+    inner.innerHTML = renderBreakdownContent(tag);
   }
 
   async function fetchBreakdown(tag) {
     try {
-      const res = await fetch('https://penny-pairs-shopify.madie-f69.workers.dev', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,system:`You are a Shopify analytics assistant. Run the given ShopifyQL query and return ONLY a raw JSON array. Each element: {"product_type": string, "items": number, "sales": number}. No explanation, no markdown, just the JSON array.`,messages:[{role:'user',content:`Run this ShopifyQL query:\n\nFROM sales SHOW net_items_sold, total_sales GROUP BY product_type, product_tag SINCE ${currentDateRange.since} UNTIL ${currentDateRange.until} ORDER BY total_sales DESC LIMIT 500\n\nFilter to only rows where product_tag exactly matches: ${tag}\nReturn each as {"product_type": string, "items": number, "sales": number}`}],mcp_servers:[{type:'url',url:'https://setup.shopify.com/mcp',name:'shopify'}]})});
-      const data=await res.json(),raw=data.content?.find(b=>b.type==='text')?.text||'',match=raw.match(/\[[\s\S]*\]/); if(!match) throw new Error('No breakdown data');
-      const parsed=JSON.parse(match[0]),result={};
-      parsed.forEach(row=>{if(ALL_TYPES.includes(row.product_type)) result[row.product_type]={items:Number(row.items)||0,sales:Number(row.sales)||0};});
-      breakdownCache[tag]=result;
-    } catch(e){console.error('Breakdown error:',e);breakdownCache[tag]={};}
+      const { rows, cols } = await shopifyQuery(
+        'FROM sales SHOW net_items_sold, total_sales GROUP BY product_type, product_tag SINCE ' + currentDateRange.since + ' UNTIL ' + currentDateRange.until + ' ORDER BY total_sales DESC LIMIT 500'
+      );
+      const typeIdx = cols.indexOf('product_type');
+      const tagIdx = cols.indexOf('product_tag');
+      const itemsIdx = cols.indexOf('net_items_sold');
+      const salesIdx = cols.indexOf('total_sales');
+      const result = {};
+      rows.filter(r => r[tagIdx] === tag).forEach(r => {
+        if (ALL_TYPES.includes(r[typeIdx])) {
+          result[r[typeIdx]] = { items: parseFloat(r[itemsIdx]) || 0, sales: parseFloat(r[salesIdx]) || 0 };
+        }
+      });
+      breakdownCache[tag] = result;
+    } catch(e) {
+      console.error('Breakdown error:', e);
+      breakdownCache[tag] = {};
+    }
   }
 
   async function getRecommendations() {
-    if(!currentFilteredRows.length){alert('No data loaded. Please refresh first.');return;}
-    const btn=document.getElementById('recBtn');
-    btn.disabled=true; btn.innerHTML='<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="animation:spin 0.7s linear infinite"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Analyzing...';
-    document.getElementById('recBody').innerHTML='<div class="rec-loading"><div class="spinner"></div><span>Analyzing your data and generating growth insights...</span></div>';
+    if (!currentFilteredRows.length) { alert('No data loaded. Please refresh first.'); return; }
+    const btn = document.getElementById('recBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="animation:spin 0.7s linear infinite"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Analyzing...';
+    document.getElementById('recBody').innerHTML = '<div class="rec-loading"><div class="spinner"></div><span>Analyzing your data and generating growth insights...</span></div>';
 
-    const rows=currentFilteredRows;
-    const keyFilter=document.getElementById('metafieldFilter').value;
-    const from=document.getElementById('dateFrom').value,to=document.getElementById('dateTo').value;
-    const totalSales=rows.reduce((s,r)=>s+(parseFloat(r.sales)||0),0);
-    const totalItems=rows.reduce((s,r)=>s+(parseInt(r.items)||0),0);
-    const top5=rows.slice(0,5).map(r=>`${extractValue(r.tag)} (${fmt$(r.sales)}, ${fmtN(r.items)} items)`).join(', ');
-    const bottom5=rows.slice(-5).map(r=>`${extractValue(r.tag)} (${fmt$(r.sales)}, ${fmtN(r.items)} items)`).join(', ');
-    const filterContext=activeType!=='all'?`Product type: ${activeType}. `:'';
-    const keyContext=keyFilter!=='all'?`Metafield key: ${keyFilter}. `:'';
+    const rows = currentFilteredRows;
+    const keyFilter = document.getElementById('metafieldFilter').value;
+    const from = document.getElementById('dateFrom').value, to = document.getElementById('dateTo').value;
+    const totalSales = rows.reduce((s,r) => s + (parseFloat(r.sales)||0), 0);
+    const totalItems = rows.reduce((s,r) => s + (parseInt(r.items)||0), 0);
+    const top5 = rows.slice(0,5).map(r => extractValue(r.tag) + ' (' + fmt$(r.sales) + ', ' + fmtN(r.items) + ' items)').join(', ');
+    const bottom5 = rows.slice(-5).map(r => extractValue(r.tag) + ' (' + fmt$(r.sales) + ', ' + fmtN(r.items) + ' items)').join(', ');
+    const filterCtx = activeType !== 'all' ? 'Product type: ' + activeType + '. ' : '';
+    const keyCtx = keyFilter !== 'all' ? 'Metafield key: ' + keyFilter + '. ' : '';
+    const tagLines = rows.slice(0,30).map(r => '- ' + extractValue(r.tag) + ': ' + fmt$(r.sales) + ', ' + fmtN(r.items) + ' items').join('\n');
 
-    const prompt=`You are a jewelry business analyst for Penny Pairs, a jewelry brand selling earrings, necklaces, bracelets, rings, and charms & pendants.
-
-Here is the current sales data summary:
-- Date range: ${from} to ${to}
-- ${filterContext}${keyContext}
-- Total tags analyzed: ${rows.length}
-- Total sales: ${fmt$(totalSales)}
-- Total items sold: ${fmtN(totalItems)}
-- Top 5 performing tags: ${top5}
-- Bottom 5 tags: ${bottom5}
-
-Full tag data (tag name, sales, items):
-${rows.slice(0,30).map(r=>`- ${extractValue(r.tag)}: ${fmt$(r.sales)}, ${fmtN(r.items)} items`).join('\n')}
-
-Based on this data, provide SHORT, SPECIFIC growth recommendations in this exact JSON format:
-{
-  "opportunities": ["3-4 bullet points about underperforming tags or categories with clear growth potential"],
-  "strengths": ["2-3 bullet points about what's working well that could be doubled down on"],
-  "actions": ["3-4 specific, actionable next steps the team can take this week"]
-}
-
-Be specific to the actual tag names and numbers. No generic advice. Return ONLY the JSON, no markdown.`;
+    const prompt = 'You are a jewelry business analyst for Penny Pairs, a jewelry brand selling earrings, necklaces, bracelets, rings, and charms & pendants.\n\nCurrent sales data:\n- Date range: ' + from + ' to ' + to + '\n- ' + filterCtx + keyCtx + '\n- Total tags: ' + rows.length + '\n- Total sales: ' + fmt$(totalSales) + '\n- Total items: ' + fmtN(totalItems) + '\n- Top 5 tags: ' + top5 + '\n- Bottom 5 tags: ' + bottom5 + '\n\nAll tag data:\n' + tagLines + '\n\nProvide SHORT, SPECIFIC growth recommendations in this exact JSON format (no markdown, just JSON):\n{"opportunities":["3-4 bullets about underperforming tags with growth potential"],"strengths":["2-3 bullets about what is working well"],"actions":["3-4 specific actionable next steps for this week"]}';
 
     try {
-      const res = await fetch('https://penny-pairs-shopify.madie-f69.workers.dev', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
-      const data=await res.json(),raw=data.content?.find(b=>b.type==='text')?.text||'';
-      const match=raw.match(/\{[\s\S]*\}/); if(!match) throw new Error('Could not parse recommendations');
-      const rec=JSON.parse(match[0]);
-
-      const sections=[
-        {key:'opportunities',title:'Growth opportunities',color:'#D85A30'},
-        {key:'strengths',title:'What\'s working',color:'#1D9E75'},
-        {key:'actions',title:'Actions to take this week',color:'#534AB7'}
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+      });
+      const data = await res.json();
+      const raw = (data.content || []).find(b => b.type === 'text')?.text || '';
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('Could not parse recommendations');
+      const rec = JSON.parse(match[0]);
+      const sections = [
+        { key: 'opportunities', title: 'Growth opportunities', color: '#D85A30' },
+        { key: 'strengths', title: "What's working", color: '#1D9E75' },
+        { key: 'actions', title: 'Actions to take this week', color: '#534AB7' }
       ];
-
-      let html=`<div class="rec-result">`;
-      sections.forEach(s=>{
-        if(rec[s.key]?.length){
-          html+=`<div class="rec-section">
-            <div class="rec-section-title"><div class="dot" style="background:${s.color}"></div>${s.title}</div>
-            <div class="rec-bullets">${rec[s.key].map(b=>`<div class="rec-bullet">${esc(b)}</div>`).join('')}</div>
-          </div>`;
+      let html = '<div class="rec-result">';
+      sections.forEach(s => {
+        if (rec[s.key] && rec[s.key].length) {
+          html += '<div class="rec-section"><div class="rec-section-title"><div class="dot" style="background:' + s.color + '"></div>' + s.title + '</div><div class="rec-bullets">' + rec[s.key].map(b => '<div class="rec-bullet">' + esc(b) + '</div>').join('') + '</div></div>';
         }
       });
-      html+=`<div class="rec-footer">
-        <span class="rec-footer-note">Based on ${rows.length} tags · ${from} → ${to}${activeType!=='all'?' · '+activeType:''}</span>
-        <button class="btn" onclick="resetRec()">↺ Reset</button>
-      </div></div>`;
-      document.getElementById('recBody').innerHTML=html;
+      html += '<div class="rec-footer"><span class="rec-footer-note">Based on ' + rows.length + ' tags \u00B7 ' + from + ' \u2192 ' + to + (activeType !== 'all' ? ' \u00B7 ' + activeType : '') + '</span><button class="btn" onclick="resetRec()">\u21BA Reset</button></div></div>';
+      document.getElementById('recBody').innerHTML = html;
     } catch(e) {
       console.error(e);
-      document.getElementById('recBody').innerHTML=`<div class="rec-prompt"><p style="color:var(--danger)">Could not generate recommendations: ${e.message}</p><button class="btn" onclick="resetRec()">Try again</button></div>`;
+      document.getElementById('recBody').innerHTML = '<div class="rec-prompt"><p style="color:var(--danger)">Could not generate recommendations: ' + e.message + '</p><button class="btn" onclick="resetRec()">Try again</button></div>';
     }
-    btn.disabled=false; btn.innerHTML='<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Get recommendations';
+
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Get recommendations';
   }
 
   function resetRec() {
-    document.getElementById('recBody').innerHTML=`<div class="rec-prompt"><p>Set your filters to the view you want analyzed, then click <strong>Get recommendations</strong> to get AI-powered growth insights based on the current data.</p><div class="rec-context" id="recContextPreview"></div></div>`;
+    document.getElementById('recBody').innerHTML = '<div class="rec-prompt"><p>Set your filters to the view you want analyzed, then click <strong>Get recommendations</strong> to get AI-powered growth insights based on the current data.</p><div class="rec-context" id="recContextPreview"></div></div>';
     updateRecContext();
   }
 
