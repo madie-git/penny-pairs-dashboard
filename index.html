@@ -1,0 +1,527 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f7f6f3; --surface: #ffffff; --surface2: #f0ede8;
+    --border: #e2ddd6; --border2: #cdc8c0;
+    --text: #1a1815; --text2: #6b6560; --text3: #9e9890;
+    --accent: #2d4a3e; --accent-light: #e8f0ec;
+    --tag-bg: #f0ede8; --tag-text: #4a4540;
+    --danger: #c0392b;
+    --font: 'DM Sans', sans-serif; --mono: 'DM Mono', monospace;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+  .dashboard { padding: 24px; max-width: 980px; margin: 0 auto; }
+
+  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
+  .header-left h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-left p { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: var(--mono); }
+  .btn { font-family: var(--font); font-size: 12px; font-weight: 500; padding: 7px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface); color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; white-space: nowrap; }
+  .btn:hover { background: var(--surface2); color: var(--text); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { background: #1e3329; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .filter-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .filter-row-top { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end; }
+  .filter-divider { border: none; border-top: 1px solid var(--border); }
+  .filter-group { display: flex; flex-direction: column; gap: 5px; }
+  .filter-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+  .filter-inputs { display: flex; align-items: center; gap: 6px; }
+  .filter-input { font-family: var(--font); font-size: 13px; padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--text); outline: none; height: 34px; }
+  .filter-input:focus { border-color: var(--accent); }
+  select.filter-input { cursor: pointer; min-width: 210px; }
+  .filter-sep { font-size: 11px; color: var(--text3); }
+  .type-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .type-pill { font-size: 12px; font-weight: 500; padding: 5px 13px; border-radius: 20px; border: 1px solid var(--border2); background: var(--surface); color: var(--text2); cursor: pointer; transition: all 0.15s; user-select: none; }
+  .type-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .type-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .charts-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 14px; margin-bottom: 16px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .chart-card h3 { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px; }
+  .bar-chart-wrap { height: 280px; position: relative; }
+  .donut-chart-wrap { height: 200px; display: flex; align-items: center; justify-content: center; position: relative; }
+  .donut-legend { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .legend-item { display: flex; align-items: center; justify-content: space-between; font-size: 11px; gap: 8px; }
+  .legend-left { display: flex; align-items: center; gap: 6px; color: var(--text2); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .legend-val { font-family: var(--mono); font-size: 11px; color: var(--text); font-weight: 500; }
+
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .table-title { font-size: 13px; font-weight: 600; }
+  .table-meta { display: flex; gap: 8px; align-items: center; }
+  .row-count { font-size: 11px; color: var(--text3); font-family: var(--mono); background: var(--surface2); padding: 3px 8px; border-radius: 20px; }
+  .active-badge { font-size: 11px; color: var(--accent); font-family: var(--mono); background: var(--accent-light); padding: 3px 8px; border-radius: 20px; display: none; }
+  .hint { font-size: 11px; color: var(--text3); font-style: italic; }
+
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  col.col-expand { width: 36px; }
+  col.col-tag { width: 32%; } col.col-key { width: 24%; } col.col-items { width: 16%; } col.col-sales { width: 18%; } col.col-act { width: 10%; }
+  thead th { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); text-align: left; }
+  thead th.num { text-align: right; }
+  thead th.center { text-align: center; }
+
+  tbody tr.data-row { border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.1s; }
+  tbody tr.data-row:hover { background: var(--bg); }
+  tbody tr.data-row.expanded { background: var(--accent-light); }
+  tbody td { padding: 10px 16px; font-size: 13px; vertical-align: middle; }
+  tbody td.num { text-align: right; font-family: var(--mono); font-size: 12px; color: var(--text2); }
+  tbody td.sales-val { text-align: right; font-family: var(--mono); font-size: 12px; font-weight: 500; }
+  tbody td.center { text-align: center; }
+
+  .tag-name { font-size: 12px; font-weight: 500; }
+  .key-pill { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 20px; background: var(--tag-bg); color: var(--tag-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+  .expand-icon { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--border2); display: inline-flex; align-items: center; justify-content: center; color: var(--text3); font-size: 10px; transition: all 0.2s; background: var(--surface); }
+  tr.expanded .expand-icon { background: var(--accent); color: #fff; border-color: var(--accent); transform: rotate(180deg); }
+
+  /* BREAKDOWN ROW */
+  tr.breakdown-row { display: none; }
+  tr.breakdown-row.open { display: table-row; }
+  tr.breakdown-row td { padding: 0; border-bottom: 1px solid var(--border); }
+  .breakdown-inner { padding: 14px 16px 16px; background: var(--surface2); }
+  .breakdown-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+  .breakdown-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+  .breakdown-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; }
+  .bc-type { font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
+  .bc-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .bc-sales { font-size: 14px; font-weight: 600; color: var(--text); font-family: var(--mono); }
+  .bc-items { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: var(--mono); }
+  .bc-bar-track { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; }
+  .bc-bar-fill { height: 100%; border-radius: 2px; }
+  .breakdown-loading { font-size: 12px; color: var(--text3); font-family: var(--mono); padding: 8px 0; display: flex; align-items: center; gap: 8px; }
+  .mini-spinner { display: inline-block; width: 12px; height: 12px; border: 1.5px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+  .totals-row td { background: var(--surface2) !important; font-weight: 600; border-top: 2px solid var(--border2); }
+  .totals-row td.sales-val { color: var(--accent); }
+  .empty-state { padding: 48px 16px; text-align: center; color: var(--text3); font-size: 13px; }
+  .loading-overlay { padding: 48px 16px; text-align: center; }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-bottom: 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-overlay p { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+  .error-bar { background: #fdf0ee; border: 1px solid #f5c6bc; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12px; color: var(--danger); margin-bottom: 14px; display: none; }
+  .error-bar.visible { display: block; }
+  .no-chart { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 12px; color: var(--text3); }
+</style>
+</head>
+<body>
+<div class="dashboard">
+  <div class="header">
+    <div class="header-left">
+      <h1>Sales by design tag</h1>
+      <p id="timestamp">Penny Pairs · not yet loaded</p>
+    </div>
+    <div class="header-right">
+      <button class="btn primary" id="refreshBtn" onclick="fetchData()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-row-top">
+      <div class="filter-group">
+        <span class="filter-label">Date range</span>
+        <div class="filter-inputs">
+          <input type="date" class="filter-input" id="dateFrom" />
+          <span class="filter-sep">→</span>
+          <input type="date" class="filter-input" id="dateTo" />
+          <button class="btn" onclick="fetchData()" style="height:34px;">Apply</button>
+        </div>
+      </div>
+      <div class="filter-group">
+        <span class="filter-label">Metafield key</span>
+        <select class="filter-input" id="metafieldFilter" onchange="applyFilters()">
+          <option value="all">All metafields</option>
+        </select>
+      </div>
+    </div>
+    <hr class="filter-divider" />
+    <div class="filter-group">
+      <span class="filter-label">Product type</span>
+      <div class="type-pills">
+        <span class="type-pill active" data-type="all" onclick="setType('all')">All types</span>
+        <span class="type-pill" data-type="Earrings" onclick="setType('Earrings')">Earrings</span>
+        <span class="type-pill" data-type="Necklaces" onclick="setType('Necklaces')">Necklaces</span>
+        <span class="type-pill" data-type="Bracelets" onclick="setType('Bracelets')">Bracelets</span>
+        <span class="type-pill" data-type="Rings" onclick="setType('Rings')">Rings</span>
+        <span class="type-pill" data-type="Charms & Pendants" onclick="setType('Charms & Pendants')">Charms & Pendants</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="error-bar" id="errorBar"></div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <h3>Total sales by tag — top 10</h3>
+      <div class="bar-chart-wrap"><canvas id="barChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <h3>Sales share by metafield key</h3>
+      <div class="donut-chart-wrap"><canvas id="donutChart"></canvas></div>
+      <div class="donut-legend" id="donutLegend"></div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <span class="table-title">Design tag breakdown</span>
+      <div class="table-meta">
+        <span class="hint">Click a row to see sales by product type</span>
+        <span class="active-badge" id="activeBadge"></span>
+        <span class="row-count" id="rowCount">— rows</span>
+      </div>
+    </div>
+    <div id="tableBody">
+      <div class="loading-overlay"><div class="spinner"></div><p>Fetching live data from Shopify...</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const TYPE_TAG_MAP = {
+    'Earrings': new Set(['[metafield - jewelry material base] brass','[metafield - style] dainty','[metafield - stones] cubic zirconia','[metafield - jewelry material base] medical grade titanium','[metafield - earring design - pp] flatback','[metafield - stones] no stones','[metafield - jewelry plating] thick 14k gold plating','[metafield - style] basic','[metafield - jewelry plating] pvd plating','[metafield - earring design - pp] huggie','[metafield - earring design - pp] hoop','[metafield - jewelry plating] thick 18k gold plating','[metafield - finish] smooth','[metafield - style] mixed','[metafield - style] stackable','[metafield - earring design - pp] round','[metafield - stones] lab grown diamonds','[metafield - earring design - pp] stud','[metafield - jewelry plating] sterling silver','[metafield - style] statement','[metafield - style] chunky','[metafield - supplier] mercery','[metafield - finish] pavé','[metafield - earring design - pp] double illusion','[metafield - earring design - pp] triple illusion','[metafield - jewelry material base] sterling silver (100% recycled)','[metafield - jewelry plating] rhodium plating','[metafield - style] colored','[metafield - style] molten','[metafield - stones] opal','[metafield - earring design - pp] dangle','[metafield - stones] others','[metafield - jewelry type] plated jewelry','[metafield - color pattern] gold','[metafield - gemstones] cubic zirconia','[metafield - earring design] flatback','[metafield - tier] 10% off','[metafield - supplier] illusion v3','[metafield - finish] textured','[metafield - launch collection] piercings 2025','[metafield - launch collection] flatbacks april 2026','[metafield - lifecycle] new launch','[metafield - launch collection] basic huggies & hoops 2026','[metafield - launch collection] solid gold flatbacks','[metafield - supplier] superstar','[metafield - launch collection] more silver bestsellers','[metafield - launch collection] titanium hoops','[metafield - style] hearts','[metafield - jewelry plating] solid white gold','[metafield - jewelry plating] pvd platinum','[metafield - jewelry plating] solid yellow gold','[metafield - jewelry material base] 14k solid yellow gold','[metafield - stones] cz','[metafield - stones] diamonds','[metafield - earring design - pp] bubble drop','[metafield - earring design - pp] jacket','[metafield - earring design - pp] oval','[metafield - launch collection] molten','[metafield - launch collection] plain x pave','[metafield - launch collection] thick huggies/hoops','[metafield - launch collection] statement earrings','[metafield - launch collection] illusion v6','[metafield - launch collection] liquid','[metafield - launch collection] zodiac collection','[metafield - style] floral','[metafield - supplier] evershiny jewelry','[metafield - jewelry plating] 18k gold vermeil']),
+    'Necklaces': new Set(['[metafield - finish] smooth','[metafield - jewelry material base] brass','[metafield - jewelry plating] thick 14k gold plating','[metafield - style] dainty','[metafield - necklace design - pp] pendant','[metafield - style] stackable','[metafield - necklace design - pp] layering','[metafield - stones] cubic zirconia','[metafield - style] basic','[metafield - style] statement','[metafield - stones] no stones','[metafield - jewelry plating] thick 18k gold plating','[metafield - stones] lab grown diamonds','[metafield - jewelry plating] sterling silver','[metafield - supplier] mercery','[metafield - finish] textured','[metafield - style] hearts','[metafield - jewelry plating] 18k gold vermeil','[metafield - jewelry material base] sterling silver (100% recycled)','[metafield - jewelry plating] rhodium plating','[metafield - style] colored','[metafield - style] floral','[metafield - launch collection] chain necklaces 2026','[metafield - finish] pavé','[metafield - necklace design - pp] locket','[metafield - supplier] evershiny jewelry','[metafield - launch collection] hearts','[metafield - launch collection] necklace builder 2025','[metafield - stones] others','[metafield - jewelry material base] 14k solid yellow gold','[metafield - jewelry plating] solid yellow gold','[metafield - lifecycle] in line']),
+    'Bracelets': new Set(['[metafield - finish] smooth','[metafield - style] stackable','[metafield - style] dainty','[metafield - style] basic','[metafield - jewelry material base] brass','[metafield - jewelry plating] thick 14k gold plating','[metafield - bracelet design - pp] layering','[metafield - lifecycle] in line','[metafield - stones] no stones','[metafield - stones] cubic zirconia','[metafield - launch collection] chain bracelets','[metafield - supplier] mercery','[metafield - jewelry material base] sterling silver (100% recycled)','[metafield - jewelry plating] rhodium plating','[metafield - jewelry plating] solid yellow gold','[metafield - style] colored','[metafield - bracelet design - pp] pendant','[metafield - launch collection] wicked','[metafield - bracelet design - pp] bangle','[metafield - bracelet design - pp] stretchy','[metafield - jewelry plating] sterling silver','[metafield - style] hearts','[metafield - style] floral','[metafield - style] statement','[metafield - launch collection] ange bangle','[metafield - launch collection] sally & flora bracelets','[metafield - stones] others','[metafield - jewelry plating] thick 18k gold plating','[metafield - launch collection] barbie','[metafield - style] molten']),
+    'Rings': new Set([]),
+    'Charms & Pendants': new Set([])
+  };
+
+  const TAG_TO_TYPES = {};
+  for (const [ptype, tags] of Object.entries(TYPE_TAG_MAP)) {
+    for (const tag of tags) {
+      if (!TAG_TO_TYPES[tag]) TAG_TO_TYPES[tag] = [];
+      TAG_TO_TYPES[tag].push(ptype);
+    }
+  }
+
+  const TYPE_COLORS = {
+    'Earrings': '#534AB7', 'Necklaces': '#1D9E75',
+    'Bracelets': '#D85A30', 'Rings': '#D4537E',
+    'Charms & Pendants': '#BA7517'
+  };
+  const KEY_PALETTE = ['#534AB7','#1D9E75','#D85A30','#D4537E','#BA7517','#0891B2','#7C3AED','#059669','#DC2626','#D97706','#6366F1','#10B981','#F59E0B','#EF4444','#8B5CF6'];
+  const ALL_TYPES = ['Earrings','Necklaces','Bracelets','Rings','Charms & Pendants'];
+
+  let allRows = [];
+  let activeType = 'all';
+  let expandedTag = null;
+  let breakdownCache = {};
+  let barChartInstance = null;
+  let donutChartInstance = null;
+  let currentDateRange = {};
+
+  function initDates() {
+    const today = new Date();
+    const prior = new Date(); prior.setDate(today.getDate() - 30);
+    document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+    document.getElementById('dateFrom').value = prior.toISOString().split('T')[0];
+  }
+
+  function fmt$(v) { return '₱' + Math.round(parseFloat(v)||0).toLocaleString(); }
+  function fmtK(v) { const n = Math.round(parseFloat(v)||0); return n >= 1000 ? '₱'+(n/1000).toFixed(0)+'k' : '₱'+n; }
+  function fmtN(v) { return parseInt(v||0).toLocaleString(); }
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function extractKey(tag) {
+    const m = tag.match(/\[Metafield - ([^\]]+?)\]\s/i);
+    if (m) return m[1].trim();
+    const m2 = tag.match(/\[Metafield - ([^\]]+)\]$/i);
+    return m2 ? m2[1].trim() : null;
+  }
+  function extractValue(tag) {
+    const m = tag.match(/\[Metafield - [^\]]+\]\s+(.+)/i);
+    return m ? m[1].trim() : tag;
+  }
+  function tagMatchesType(tag, type) {
+    if (type === 'all') return true;
+    return (TAG_TO_TYPES[tag.toLowerCase()] || []).includes(type);
+  }
+
+  function setType(type) {
+    activeType = type;
+    document.querySelectorAll('.type-pill').forEach(p => p.classList.toggle('active', p.dataset.type === type));
+    buildDropdown(allRows);
+    applyFilters();
+  }
+
+  async function fetchData() {
+    const btn = document.getElementById('refreshBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="animation:spin 0.7s linear infinite"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg> Loading...';
+    document.getElementById('tableBody').innerHTML = '<div class="loading-overlay"><div class="spinner"></div><p>Fetching from Shopify...</p></div>';
+    document.getElementById('errorBar').classList.remove('visible');
+    expandedTag = null;
+    breakdownCache = {};
+
+    const from = document.getElementById('dateFrom').value;
+    const to = document.getElementById('dateTo').value;
+    currentDateRange = { since: from ? `${from}T00:00:00` : 'startOfDay(-30d)', until: to ? `${to}T23:59:59` : 'today' };
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 8000,
+          system: `You are a Shopify analytics assistant with access to the Shopify MCP tool for penny-pairs.myshopify.com. Run the given ShopifyQL query and return ONLY a raw JSON array. Each element: {"tag": string, "items": number, "sales": number}. Only include rows where tag contains "[Metafield". No explanation, no markdown fences, just the JSON array.`,
+          messages: [{ role: 'user', content: `Run this ShopifyQL query:\n\nFROM sales SHOW net_items_sold, total_sales GROUP BY product_tag WITH TOTALS SINCE ${currentDateRange.since} UNTIL ${currentDateRange.until} ORDER BY total_sales DESC LIMIT 1000` }],
+          mcp_servers: [{ type: 'url', url: 'https://setup.shopify.com/mcp', name: 'shopify' }]
+        })
+      });
+
+      const data = await res.json();
+      const raw = data.content?.find(b => b.type === 'text')?.text || '';
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('No data returned');
+      const parsed = JSON.parse(match[0]);
+      allRows = parsed.filter(r => r.tag?.includes('[Metafield')).sort((a,b) => b.sales - a.sales);
+      if (!allRows.length) throw new Error('No metafield tags found');
+
+      buildDropdown(allRows);
+      applyFilters();
+      document.getElementById('timestamp').textContent = `Penny Pairs · refreshed ${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+    } catch(e) {
+      console.error(e);
+      document.getElementById('errorBar').textContent = 'Error: ' + e.message;
+      document.getElementById('errorBar').classList.add('visible');
+      document.getElementById('tableBody').innerHTML = '<div class="empty-state">No data loaded. Try refreshing.</div>';
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg> Refresh';
+  }
+
+  function buildDropdown(rows) {
+    const visible = activeType === 'all' ? rows : rows.filter(r => tagMatchesType(r.tag, activeType));
+    const keys = [...new Set(visible.map(r => extractKey(r.tag)).filter(Boolean))].sort();
+    const sel = document.getElementById('metafieldFilter');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="all">All metafields</option>';
+    keys.forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; sel.appendChild(o); });
+    sel.value = keys.includes(cur) ? cur : 'all';
+  }
+
+  function applyFilters() {
+    const keyFilter = document.getElementById('metafieldFilter').value;
+    let filtered = allRows;
+    if (activeType !== 'all') filtered = filtered.filter(r => tagMatchesType(r.tag, activeType));
+    if (keyFilter !== 'all') filtered = filtered.filter(r => extractKey(r.tag) === keyFilter);
+
+    const badge = document.getElementById('activeBadge');
+    const parts = [];
+    if (activeType !== 'all') parts.push(activeType);
+    if (keyFilter !== 'all') parts.push(keyFilter);
+    badge.textContent = parts.join(' · ');
+    badge.style.display = parts.length ? 'inline-block' : 'none';
+
+    renderCharts(filtered);
+    renderTable(filtered);
+  }
+
+  // ── CHARTS ──────────────────────────────────────────
+  function renderCharts(rows) {
+    const top10 = rows.slice(0,10);
+    const labels = top10.map(r => { const v = extractValue(r.tag); return v.length > 22 ? v.slice(0,20)+'…' : v; });
+    const values = top10.map(r => parseFloat(r.sales)||0);
+    const allKeys = [...new Set(rows.map(r => extractKey(r.tag)).filter(Boolean))];
+    const keyColorMap = {};
+    allKeys.forEach((k,i) => { keyColorMap[k] = KEY_PALETTE[i % KEY_PALETTE.length]; });
+    const bgColors = top10.map(r => keyColorMap[extractKey(r.tag)] || '#534AB7');
+
+    if (barChartInstance) { barChartInstance.destroy(); barChartInstance = null; }
+    const bCtx = document.getElementById('barChart').getContext('2d');
+    barChartInstance = new Chart(bCtx, {
+      type: 'bar',
+      data: { labels, datasets: [{ data: values, backgroundColor: bgColors, borderRadius: 4, borderSkipped: false }] },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ' '+fmt$(c.raw), title: c => extractValue(top10[c[0].dataIndex].tag) } } },
+        scales: {
+          x: { grid: { color: '#e2ddd6' }, ticks: { font: { family: 'DM Mono', size: 10 }, color: '#9e9890', callback: v => fmtK(v) }, border: { display: false } },
+          y: { grid: { display: false }, ticks: { font: { family: 'DM Sans', size: 11 }, color: '#6b6560' }, border: { display: false } }
+        }
+      }
+    });
+
+    const keyTotals = {};
+    rows.forEach(r => { const k = extractKey(r.tag)||'Other'; keyTotals[k] = (keyTotals[k]||0) + (parseFloat(r.sales)||0); });
+    const sorted = Object.entries(keyTotals).sort((a,b)=>b[1]-a[1]);
+    const top6 = sorted.slice(0,6);
+    const rest = sorted.slice(6).reduce((s,[,v])=>s+v, 0);
+    if (rest > 0) top6.push(['Other keys', rest]);
+    const dLabels = top6.map(([k])=>k), dVals = top6.map(([,v])=>v);
+    const total = dVals.reduce((s,v)=>s+v,0);
+    const dColors = dLabels.map((_,i)=>KEY_PALETTE[i%KEY_PALETTE.length]);
+
+    if (donutChartInstance) { donutChartInstance.destroy(); donutChartInstance = null; }
+    const dCtx = document.getElementById('donutChart').getContext('2d');
+    donutChartInstance = new Chart(dCtx, {
+      type: 'doughnut',
+      data: { labels: dLabels, datasets: [{ data: dVals, backgroundColor: dColors, borderWidth: 2, borderColor: '#fff', hoverOffset: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${fmt$(c.raw)} (${total>0?((c.raw/total)*100).toFixed(1):0}%)` } } } }
+    });
+    document.getElementById('donutLegend').innerHTML = top6.map(([k,v],i) => {
+      const pct = total>0?((v/total)*100).toFixed(1):0;
+      const sk = k.length>24?k.slice(0,22)+'…':k;
+      return `<div class="legend-item"><div class="legend-left"><div class="legend-dot" style="background:${dColors[i]}"></div><span>${esc(sk)}</span></div><span class="legend-val">${pct}%</span></div>`;
+    }).join('');
+  }
+
+  // ── TABLE ────────────────────────────────────────────
+  function renderTable(rows) {
+    document.getElementById('rowCount').textContent = rows.length + ' rows';
+    if (!rows.length) {
+      document.getElementById('tableBody').innerHTML = '<div class="empty-state">No tags match the current filters.</div>';
+      return;
+    }
+    let totalItems = 0, totalSales = 0;
+    rows.forEach(r => { totalItems += Number(r.items); totalSales += Number(r.sales); });
+
+    let html = `<table>
+      <colgroup><col class="col-expand"><col class="col-tag"><col class="col-key"><col class="col-items"><col class="col-sales"></colgroup>
+      <thead><tr>
+        <th class="center"></th>
+        <th>Design tag</th><th>Metafield key</th>
+        <th class="num">Net items sold</th><th class="num">Total sales</th>
+      </tr></thead><tbody>`;
+
+    rows.forEach((r, i) => {
+      const key = extractKey(r.tag) || '—';
+      const val = extractValue(r.tag);
+      const rowId = `row-${i}`;
+      const isOpen = expandedTag === r.tag;
+      html += `
+        <tr class="data-row${isOpen?' expanded':''}" onclick="toggleRow('${rowId}','${encodeURIComponent(r.tag)}')">
+          <td class="center"><span class="expand-icon">▾</span></td>
+          <td><div class="tag-name">${esc(val)}</div></td>
+          <td><span class="key-pill">${esc(key)}</span></td>
+          <td class="num">${fmtN(r.items)}</td>
+          <td class="sales-val">${fmt$(r.sales)}</td>
+        </tr>
+        <tr class="breakdown-row${isOpen?' open':''}" id="${rowId}-breakdown">
+          <td colspan="5">
+            <div class="breakdown-inner" id="${rowId}-inner">
+              ${isOpen ? renderBreakdownContent(r.tag) : '<div class="breakdown-loading"><span class="mini-spinner"></span> Loading breakdown...</div>'}
+            </div>
+          </td>
+        </tr>`;
+    });
+
+    html += `</tbody><tfoot><tr class="totals-row">
+      <td></td><td><strong>Total</strong></td><td></td>
+      <td class="num">${fmtN(totalItems)}</td>
+      <td class="sales-val">${fmt$(totalSales)}</td>
+    </tr></tfoot></table>`;
+
+    document.getElementById('tableBody').innerHTML = html;
+  }
+
+  function renderBreakdownContent(tag) {
+    const cached = breakdownCache[tag];
+    if (!cached) return '<div class="breakdown-loading"><span class="mini-spinner"></span> Loading breakdown...</div>';
+
+    const typeEntries = ALL_TYPES.map(t => ({ type: t, ...( cached[t] || { items: 0, sales: 0 }) })).filter(e => e.sales > 0);
+    if (!typeEntries.length) return '<div style="font-size:12px;color:var(--text3)">No product type breakdown available for this tag.</div>';
+
+    const maxSales = Math.max(...typeEntries.map(e => e.sales));
+    const totalSales = typeEntries.reduce((s,e) => s+e.sales, 0);
+
+    return `<div class="breakdown-title">Sales distribution by product type — "${esc(extractValue(tag))}"</div>
+    <div class="breakdown-grid">
+      ${typeEntries.map(e => {
+        const pct = totalSales > 0 ? ((e.sales/totalSales)*100).toFixed(1) : 0;
+        const barW = maxSales > 0 ? ((e.sales/maxSales)*100).toFixed(1) : 0;
+        const color = TYPE_COLORS[e.type] || '#9e9890';
+        return `<div class="breakdown-card">
+          <div class="bc-type"><div class="bc-dot" style="background:${color}"></div>${esc(e.type)}</div>
+          <div class="bc-sales">${fmt$(e.sales)}</div>
+          <div class="bc-items">${fmtN(e.items)} items · ${pct}%</div>
+          <div class="bc-bar-track"><div class="bc-bar-fill" style="width:${barW}%;background:${color}"></div></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  async function toggleRow(rowId, encodedTag) {
+    const tag = decodeURIComponent(encodedTag);
+    const breakdownRow = document.getElementById(`${rowId}-breakdown`);
+    const dataRow = breakdownRow?.previousElementSibling;
+    const inner = document.getElementById(`${rowId}-inner`);
+
+    if (expandedTag === tag) {
+      // Close
+      expandedTag = null;
+      breakdownRow.classList.remove('open');
+      dataRow?.classList.remove('expanded');
+      return;
+    }
+
+    // Close any previously open row
+    expandedTag = tag;
+    document.querySelectorAll('.breakdown-row.open').forEach(r => r.classList.remove('open'));
+    document.querySelectorAll('.data-row.expanded').forEach(r => r.classList.remove('expanded'));
+
+    breakdownRow.classList.add('open');
+    dataRow?.classList.add('expanded');
+    inner.innerHTML = '<div class="breakdown-loading"><span class="mini-spinner"></span> Loading breakdown...</div>';
+
+    // Fetch from cache or Shopify
+    if (!breakdownCache[tag]) {
+      await fetchBreakdown(tag);
+    }
+    inner.innerHTML = renderBreakdownContent(tag);
+  }
+
+  async function fetchBreakdown(tag) {
+    const tagValue = extractValue(tag);
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          system: `You are a Shopify analytics assistant. Run the given ShopifyQL query and return ONLY a raw JSON array. Each element: {"product_type": string, "items": number, "sales": number}. No explanation, no markdown, just the JSON array.`,
+          messages: [{ role: 'user', content: `Run this ShopifyQL query:\n\nFROM sales SHOW net_items_sold, total_sales GROUP BY product_type, product_tag SINCE ${currentDateRange.since} UNTIL ${currentDateRange.until} ORDER BY total_sales DESC LIMIT 500\n\nThen filter the results to only rows where product_tag exactly matches: ${tag}\nReturn each row as {"product_type": string, "items": number, "sales": number}` }],
+          mcp_servers: [{ type: 'url', url: 'https://setup.shopify.com/mcp', name: 'shopify' }]
+        })
+      });
+
+      const data = await res.json();
+      const raw = data.content?.find(b => b.type === 'text')?.text || '';
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error('No breakdown data');
+      const parsed = JSON.parse(match[0]);
+
+      const result = {};
+      parsed.forEach(row => {
+        const pt = row.product_type;
+        if (ALL_TYPES.includes(pt)) {
+          result[pt] = { items: Number(row.items)||0, sales: Number(row.sales)||0 };
+        }
+      });
+      breakdownCache[tag] = result;
+    } catch(e) {
+      console.error('Breakdown error:', e);
+      breakdownCache[tag] = {};
+    }
+  }
+
+  initDates();
+  fetchData();
+</script>
+</body>
+</html>
