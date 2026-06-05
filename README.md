@@ -1,1 +1,1 @@
-# penny-pairs-dashboard
+# penny-pairs-productmatrix
