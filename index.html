@@ -570,7 +570,7 @@
     const prompt = 'You are a jewelry business analyst for Penny Pairs, a jewelry brand selling earrings, necklaces, bracelets, rings, and charms & pendants.\n\nCurrent sales data:\n- Date range: ' + from + ' to ' + to + '\n- ' + filterCtx + keyCtx + '\n- Total tags: ' + rows.length + '\n- Total sales: ' + fmt$(totalSales) + '\n- Total items: ' + fmtN(totalItems) + '\n- Top 5 tags: ' + top5 + '\n- Bottom 5 tags: ' + bottom5 + '\n\nAll tag data:\n' + tagLines + '\n\nProvide SHORT, SPECIFIC growth recommendations in this exact JSON format (no markdown, just JSON):\n{"opportunities":["3-4 bullets about underperforming tags with growth potential"],"strengths":["2-3 bullets about what is working well"],"actions":["3-4 specific actionable next steps for this week"]}';
 
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('https://penny-pairs-shopify.madie-f69.workers.dev/anthropic', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
