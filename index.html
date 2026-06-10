@@ -25,8 +25,7 @@
   .btn:hover { background: var(--surface2); color: var(--text); }
   .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
   .btn.primary:hover { background: #1e3329; }
-  .btn.accent2 { background: #534AB7; color: #fff; border-color: #534AB7; }
-  .btn.accent2:hover { background: #3d3690; }
+
   .btn:disabled { opacity: 0.5; cursor: not-allowed; }
   .filter-bar { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 14px; }
   .filter-row-top { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-end; }
@@ -112,25 +111,7 @@
   .loading-overlay p { font-size: 12px; color: var(--text3); font-family: var(--mono); }
   .error-bar { background: #fdf0ee; border: 1px solid #f5c6bc; border-radius: var(--radius-sm); padding: 10px 14px; font-size: 12px; color: var(--danger); margin-bottom: 14px; display: none; }
   .error-bar.visible { display: block; }
-  .rec-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-  .rec-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
-  .rec-header-left { display: flex; flex-direction: column; gap: 2px; }
-  .rec-title { font-size: 13px; font-weight: 600; }
-  .rec-subtitle { font-size: 11px; color: var(--text3); }
-  .rec-body { padding: 16px; }
-  .rec-prompt { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px; background: var(--surface2); border-radius: var(--radius-sm); text-align: center; }
-  .rec-prompt p { font-size: 13px; color: var(--text2); max-width: 380px; line-height: 1.6; }
-  .rec-context { font-size: 11px; color: var(--text3); font-family: var(--mono); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 6px 10px; margin-top: 4px; }
-  .rec-loading { display: flex; align-items: center; gap: 10px; padding: 20px; font-size: 13px; color: var(--text2); }
-  .rec-result { display: flex; flex-direction: column; gap: 10px; }
-  .rec-section { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; }
-  .rec-section-title { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
-  .rec-section-title .dot { width: 6px; height: 6px; border-radius: 50%; }
-  .rec-bullets { display: flex; flex-direction: column; gap: 6px; }
-  .rec-bullet { font-size: 13px; color: var(--text); line-height: 1.5; padding-left: 14px; position: relative; }
-  .rec-bullet::before { content: '→'; position: absolute; left: 0; color: var(--text3); font-size: 11px; top: 2px; }
-  .rec-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
-  .rec-footer-note { font-size: 11px; color: var(--text3); font-style: italic; }
+
 </style>
 </head>
 <body>
@@ -215,24 +196,7 @@
     </div>
   </div>
 
-  <div class="rec-card">
-    <div class="rec-header">
-      <div class="rec-header-left">
-        <span class="rec-title">&#10022; Growth recommendations</span>
-        <span class="rec-subtitle" id="recSubtitle">Apply filters above, then generate</span>
-      </div>
-      <button class="btn accent2" id="recBtn" onclick="getRecommendations()">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        Get recommendations
-      </button>
-    </div>
-    <div class="rec-body" id="recBody">
-      <div class="rec-prompt">
-        <p>Set your filters to the view you want analyzed, then click <strong>Get recommendations</strong> to get AI-powered growth insights based on the current data.</p>
-        <div class="rec-context" id="recContextPreview">No data loaded yet</div>
-      </div>
-    </div>
-  </div>
+
 </div>
 
 <script>
@@ -307,6 +271,14 @@
     if (!res.ok) throw new Error('Worker error ' + res.status);
     const json = await res.json();
     if (json.errors) throw new Error(JSON.stringify(json.errors));
+    // Handle GraphQL ShopifyQL response shape
+    const tableData = json.data?.shopifyQL?.tableData?.unformattedData;
+    if (tableData) {
+      const cols = tableData.headers || [];
+      const rows = tableData.rows || [];
+      return { rows, cols };
+    }
+    // Fallback: original flat shape
     const rows = json.data?.rows || [];
     const cols = (json.data?.schema || []).map(c => c.name);
     return { rows, cols };
@@ -411,21 +383,7 @@
     if (keyFilter !== 'all') parts.push(keyFilter);
     badge.textContent = parts.join(' \u00B7 ');
     badge.style.display = parts.length ? 'inline-block' : 'none';
-    updateKpis(filtered); renderCharts(filtered); renderTable(filtered); updateRecContext();
-  }
-
-  function updateRecContext() {
-    const rows = currentFilteredRows;
-    const keyFilter = document.getElementById('metafieldFilter').value;
-    const from = document.getElementById('dateFrom').value, to = document.getElementById('dateTo').value;
-    const parts = [];
-    if (activeType !== 'all') parts.push(activeType);
-    if (keyFilter !== 'all') parts.push(keyFilter);
-    const label = parts.length ? parts.join(' + ') : 'All tags';
-    const totalSales = rows.reduce((s,r) => s + (parseFloat(r.sales)||0), 0);
-    const el = document.getElementById('recContextPreview');
-    if (el) el.textContent = label + ' \u00B7 ' + rows.length + ' tags \u00B7 ' + fmt$(totalSales) + ' \u00B7 ' + from + ' \u2192 ' + to;
-    document.getElementById('recSubtitle').textContent = rows.length ? 'Based on current filters (' + rows.length + ' tags)' : 'Apply filters above, then generate';
+    updateKpis(filtered); renderCharts(filtered); renderTable(filtered);
   }
 
   function renderCharts(rows) {
@@ -549,63 +507,7 @@
     }
   }
 
-  async function getRecommendations() {
-    if (!currentFilteredRows.length) { alert('No data loaded. Please refresh first.'); return; }
-    const btn = document.getElementById('recBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" style="animation:spin 0.7s linear infinite"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Analyzing...';
-    document.getElementById('recBody').innerHTML = '<div class="rec-loading"><div class="spinner"></div><span>Analyzing your data and generating growth insights...</span></div>';
 
-    const rows = currentFilteredRows;
-    const keyFilter = document.getElementById('metafieldFilter').value;
-    const from = document.getElementById('dateFrom').value, to = document.getElementById('dateTo').value;
-    const totalSales = rows.reduce((s,r) => s + (parseFloat(r.sales)||0), 0);
-    const totalItems = rows.reduce((s,r) => s + (parseInt(r.items)||0), 0);
-    const top5 = rows.slice(0,5).map(r => extractValue(r.tag) + ' (' + fmt$(r.sales) + ', ' + fmtN(r.items) + ' items)').join(', ');
-    const bottom5 = rows.slice(-5).map(r => extractValue(r.tag) + ' (' + fmt$(r.sales) + ', ' + fmtN(r.items) + ' items)').join(', ');
-    const filterCtx = activeType !== 'all' ? 'Product type: ' + activeType + '. ' : '';
-    const keyCtx = keyFilter !== 'all' ? 'Metafield key: ' + keyFilter + '. ' : '';
-    const tagLines = rows.slice(0,30).map(r => '- ' + extractValue(r.tag) + ': ' + fmt$(r.sales) + ', ' + fmtN(r.items) + ' items').join('\n');
-
-    const prompt = 'You are a jewelry business analyst for Penny Pairs, a jewelry brand selling earrings, necklaces, bracelets, rings, and charms & pendants.\n\nCurrent sales data:\n- Date range: ' + from + ' to ' + to + '\n- ' + filterCtx + keyCtx + '\n- Total tags: ' + rows.length + '\n- Total sales: ' + fmt$(totalSales) + '\n- Total items: ' + fmtN(totalItems) + '\n- Top 5 tags: ' + top5 + '\n- Bottom 5 tags: ' + bottom5 + '\n\nAll tag data:\n' + tagLines + '\n\nProvide SHORT, SPECIFIC growth recommendations in this exact JSON format (no markdown, just JSON):\n{"opportunities":["3-4 bullets about underperforming tags with growth potential"],"strengths":["2-3 bullets about what is working well"],"actions":["3-4 specific actionable next steps for this week"]}';
-
-    try {
-      const res = await fetch('https://penny-pairs-shopify.madie-f69.workers.dev/anthropic', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
-      });
-      const data = await res.json();
-      const raw = (data.content || []).find(b => b.type === 'text')?.text || '';
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (!match) throw new Error('Could not parse recommendations');
-      const rec = JSON.parse(match[0]);
-      const sections = [
-        { key: 'opportunities', title: 'Growth opportunities', color: '#D85A30' },
-        { key: 'strengths', title: "What's working", color: '#1D9E75' },
-        { key: 'actions', title: 'Actions to take this week', color: '#534AB7' }
-      ];
-      let html = '<div class="rec-result">';
-      sections.forEach(s => {
-        if (rec[s.key] && rec[s.key].length) {
-          html += '<div class="rec-section"><div class="rec-section-title"><div class="dot" style="background:' + s.color + '"></div>' + s.title + '</div><div class="rec-bullets">' + rec[s.key].map(b => '<div class="rec-bullet">' + esc(b) + '</div>').join('') + '</div></div>';
-        }
-      });
-      html += '<div class="rec-footer"><span class="rec-footer-note">Based on ' + rows.length + ' tags \u00B7 ' + from + ' \u2192 ' + to + (activeType !== 'all' ? ' \u00B7 ' + activeType : '') + '</span><button class="btn" onclick="resetRec()">\u21BA Reset</button></div></div>';
-      document.getElementById('recBody').innerHTML = html;
-    } catch(e) {
-      console.error(e);
-      document.getElementById('recBody').innerHTML = '<div class="rec-prompt"><p style="color:var(--danger)">Could not generate recommendations: ' + e.message + '</p><button class="btn" onclick="resetRec()">Try again</button></div>';
-    }
-
-    btn.disabled = false;
-    btn.innerHTML = '<svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Get recommendations';
-  }
-
-  function resetRec() {
-    document.getElementById('recBody').innerHTML = '<div class="rec-prompt"><p>Set your filters to the view you want analyzed, then click <strong>Get recommendations</strong> to get AI-powered growth insights based on the current data.</p><div class="rec-context" id="recContextPreview"></div></div>';
-    updateRecContext();
-  }
 
   initDates();
   fetchData();
