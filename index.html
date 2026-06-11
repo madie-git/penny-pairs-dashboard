@@ -273,7 +273,8 @@
     if (json.errors) throw new Error(JSON.stringify(json.errors));
     const rows = json.data?.rows || [];
     const cols = (json.data?.schema || []).map(c => c.name);
-    return { rows, cols };
+    const productTotal = json.data?.productTotal || null;
+    return { rows, cols, productTotal };
   }
 
   async function fetchData() {
@@ -333,12 +334,13 @@
 
   function updateKpis(rows) {
     if (!rows.length) { setKpiEmpty(); return; }
-    const totalSales = rows.reduce((s,r) => s + (parseFloat(r.sales)||0), 0);
-    const totalItems = rows.reduce((s,r) => s + (parseInt(r.items)||0), 0);
     const tagCount = rows.length, top = rows[0];
+    // Use product-level total from Worker (each product counted once, not per tag)
+    const totalSales = window.currentProductTotal?.sales ?? rows.reduce((s,r) => s + (parseFloat(r.sales)||0), 0);
+    const totalItems = window.currentProductTotal?.items ?? rows.reduce((s,r) => s + (parseInt(r.items)||0), 0);
     const salesEl = document.getElementById('kpi-sales');
     salesEl.textContent = fmt$(totalSales); salesEl.className = 'kpi-value';
-    document.getElementById('kpi-sales-sub').innerHTML = 'avg <strong>' + fmt$(tagCount > 0 ? totalSales/tagCount : 0) + '</strong> per tag';
+    document.getElementById('kpi-sales-sub').innerHTML = 'from <strong>' + (window.currentProductTotal?.productCount || '—') + '</strong> products sold';
     const itemsEl = document.getElementById('kpi-items');
     itemsEl.textContent = fmtN(totalItems); itemsEl.className = 'kpi-value';
     document.getElementById('kpi-items-sub').innerHTML = 'avg <strong>' + fmtN(Math.round(tagCount > 0 ? totalItems/tagCount : 0)) + '</strong> items per tag';
