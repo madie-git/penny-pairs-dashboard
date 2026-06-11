@@ -258,27 +258,19 @@
   function setType(type) {
     activeType = type;
     document.querySelectorAll('.type-pill').forEach(p => p.classList.toggle('active', p.dataset.type === type));
-    buildDropdown(allRows);
     applyFilters();
   }
 
-  async function shopifyQuery(qlQuery) {
+  async function shopifyQuery(since, until, productType) {
     const res = await fetch(WORKER_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: qlQuery })
+      body: JSON.stringify({ since, until, productType: productType || 'all' })
     });
     if (!res.ok) throw new Error('Worker error ' + res.status);
     const json = await res.json();
+    if (json.error) throw new Error(json.error);
     if (json.errors) throw new Error(JSON.stringify(json.errors));
-    // Handle GraphQL ShopifyQL response shape
-    const tableData = json.data?.shopifyQL?.tableData?.unformattedData;
-    if (tableData) {
-      const cols = tableData.headers || [];
-      const rows = tableData.rows || [];
-      return { rows, cols };
-    }
-    // Fallback: original flat shape
     const rows = json.data?.rows || [];
     const cols = (json.data?.schema || []).map(c => c.name);
     return { rows, cols };
@@ -294,15 +286,12 @@
 
     const from = document.getElementById('dateFrom').value;
     const to = document.getElementById('dateTo').value;
-    currentDateRange = {
-      since: from ? from + 'T00:00:00' : 'startOfDay(-30d)',
-      until: to ? to + 'T23:59:59' : 'today'
-    };
+    const since = from || new Date(Date.now() - 180*24*60*60*1000).toISOString().split('T')[0];
+    const until = to || new Date().toISOString().split('T')[0];
+    currentDateRange = { since, until };
 
     try {
-      const { rows, cols } = await shopifyQuery(
-        'FROM sales SHOW net_items_sold, total_sales GROUP BY product_tag WITH TOTALS SINCE ' + currentDateRange.since + ' UNTIL ' + currentDateRange.until + ' ORDER BY total_sales DESC LIMIT 1000'
-      );
+      const { rows, cols } = await shopifyQuery(since, until, activeType);
 
       const tagIdx = cols.indexOf('product_tag');
       const itemsIdx = cols.indexOf('net_items_sold');
@@ -317,7 +306,7 @@
 
       buildDropdown(allRows);
       applyFilters();
-      document.getElementById('timestamp').textContent = 'Penny Pairs \u00B7 refreshed ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      document.getElementById('timestamp').textContent = 'Penny Pairs \u00B7 refreshed ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + ' \u00B7 ' + since + ' \u2192 ' + until;
 
     } catch(e) {
       console.error(e);
@@ -487,20 +476,14 @@
 
   async function fetchBreakdown(tag) {
     try {
-      const { rows, cols } = await shopifyQuery(
-        'FROM sales SHOW net_items_sold, total_sales GROUP BY product_type, product_tag SINCE ' + currentDateRange.since + ' UNTIL ' + currentDateRange.until + ' ORDER BY total_sales DESC LIMIT 500'
-      );
-      const typeIdx = cols.indexOf('product_type');
-      const tagIdx = cols.indexOf('product_tag');
-      const itemsIdx = cols.indexOf('net_items_sold');
-      const salesIdx = cols.indexOf('total_sales');
-      const result = {};
-      rows.filter(r => r[tagIdx] === tag).forEach(r => {
-        if (ALL_TYPES.includes(r[typeIdx])) {
-          result[r[typeIdx]] = { items: parseFloat(r[itemsIdx]) || 0, sales: parseFloat(r[salesIdx]) || 0 };
-        }
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ since: currentDateRange.since, until: currentDateRange.until, breakdown: tag })
       });
-      breakdownCache[tag] = result;
+      if (!res.ok) throw new Error('Worker error ' + res.status);
+      const json = await res.json();
+      breakdownCache[tag] = json.data?.breakdown || {};
     } catch(e) {
       console.error('Breakdown error:', e);
       breakdownCache[tag] = {};
